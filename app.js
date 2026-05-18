@@ -271,7 +271,15 @@ async function init() {
     if (SCRIPT_URL) {
         if (hasUnsavedChanges && navigator.onLine) {
             setSyncStatus('syncing', '💾 Syncing offline changes...');
-            saveToGoogleSheets(true);
+            saveToGoogleSheets(true)
+                .then(() => {
+                    console.log("Offline changes synced successfully at startup.");
+                    loadFromGoogleSheets();
+                })
+                .catch((err) => {
+                    console.error("Failed to sync offline changes at startup:", err);
+                    loadFromGoogleSheets();
+                });
         } else {
             loadFromGoogleSheets();
         }
@@ -286,9 +294,15 @@ async function init() {
             if (hasUnsavedChanges) {
                 // Upload local offline changes first
                 setSyncStatus('syncing', '💾 Syncing offline changes...');
-                await saveToGoogleSheets(true);
+                try {
+                    await saveToGoogleSheets(true);
+                    showToast("Offline changes synced successfully!", "success");
+                } catch (err) {
+                    console.error("Online event sync failed:", err);
+                    showToast("Failed to sync offline changes automatically.", "error");
+                }
                 // Then fetch latest cloud data
-                setTimeout(loadFromGoogleSheets, 1500);
+                loadFromGoogleSheets();
             } else {
                 loadFromGoogleSheets();
             }
@@ -1785,92 +1799,103 @@ async function loadFromGoogleSheets() {
 }
 
 let saveTimeout = null;
-async function saveToGoogleSheets(immediate = false) {
+function saveToGoogleSheets(immediate = false) {
     clearTimeout(saveTimeout);
 
-    const executeSave = () => {
-        if (!isInitialLoadComplete) return;
-
-        isSavingToServer = true;
-        setSyncStatus('syncing', '💾 Saving to Sheet...');
-
-        const serializedMembers = members.map(m => {
-            const copy = { ...m };
-            if (m.customFeatures) {
-                copy.showExpenses = m.customFeatures.expenses ? 'TRUE' : 'FALSE';
-                copy.showShopping = m.customFeatures.shopping ? 'TRUE' : 'FALSE';
-                copy.showCalendar = m.customFeatures.calendar ? 'TRUE' : 'FALSE';
-                copy.showReports = m.customFeatures.reports ? 'TRUE' : 'FALSE';
-                copy.showAdmin = m.customFeatures.admin ? 'TRUE' : 'FALSE';
-                copy.dashShowFilters = m.customFeatures.dashShowFilters ? 'TRUE' : 'FALSE';
-                copy.dashShowCharts = m.customFeatures.dashShowCharts ? 'TRUE' : 'FALSE';
-                copy.dashShowSettlement = m.customFeatures.dashShowSettlement ? 'TRUE' : 'FALSE';
-            } else {
-                copy.showExpenses = 'TRUE';
-                copy.showShopping = 'TRUE';
-                copy.showCalendar = 'TRUE';
-                copy.showReports = 'TRUE';
-                copy.showAdmin = 'TRUE';
-                copy.dashShowFilters = 'TRUE';
-                copy.dashShowCharts = 'TRUE';
-                copy.dashShowSettlement = 'TRUE';
+    return new Promise((resolve, reject) => {
+        const executeSave = () => {
+            if (!isInitialLoadComplete && !hasUnsavedChanges) {
+                resolve({ status: 'skipped' });
+                return;
             }
-            delete copy.customFeatures;
-            return copy;
-        });
 
-        const payload = {
-            action: 'save_data',
-            expenses: expenses,
-            members: serializedMembers,
-            carriedBalances: carriedBalances,
-            shoppingItems: shoppingItems,
-            budgets: budgets,
-            templates: templates,
-            events: events
-        };
+            isSavingToServer = true;
+            setSyncStatus('syncing', '💾 Saving to Sheet...');
 
-        const handleSuccess = (res) => {
-            isSavingToServer = false;
-            saveTimeout = null;
-            if (res && res.status !== 'error') {
-                hasUnsavedChanges = false;
-                localStorage.setItem('hasUnsavedChanges', 'false');
-                setSyncStatus('saved', 'saved');
-            } else {
+            const serializedMembers = members.map(m => {
+                const copy = { ...m };
+                if (m.customFeatures) {
+                    copy.showExpenses = m.customFeatures.expenses ? 'TRUE' : 'FALSE';
+                    copy.showShopping = m.customFeatures.shopping ? 'TRUE' : 'FALSE';
+                    copy.showCalendar = m.customFeatures.calendar ? 'TRUE' : 'FALSE';
+                    copy.showReports = m.customFeatures.reports ? 'TRUE' : 'FALSE';
+                    copy.showAdmin = m.customFeatures.admin ? 'TRUE' : 'FALSE';
+                    copy.dashShowFilters = m.customFeatures.dashShowFilters ? 'TRUE' : 'FALSE';
+                    copy.dashShowCharts = m.customFeatures.dashShowCharts ? 'TRUE' : 'FALSE';
+                    copy.dashShowSettlement = m.customFeatures.dashShowSettlement ? 'TRUE' : 'FALSE';
+                } else {
+                    copy.showExpenses = 'TRUE';
+                    copy.showShopping = 'TRUE';
+                    copy.showCalendar = 'TRUE';
+                    copy.showReports = 'TRUE';
+                    copy.showAdmin = 'TRUE';
+                    copy.dashShowFilters = 'TRUE';
+                    copy.dashShowCharts = 'TRUE';
+                    copy.dashShowSettlement = 'TRUE';
+                }
+                delete copy.customFeatures;
+                return copy;
+            });
+
+            const payload = {
+                action: 'save_data',
+                expenses: expenses,
+                members: serializedMembers,
+                carriedBalances: carriedBalances,
+                shoppingItems: shoppingItems,
+                budgets: budgets,
+                templates: templates,
+                events: events
+            };
+
+            const handleSuccess = (res) => {
+                isSavingToServer = false;
+                saveTimeout = null;
+                if (res && res.status !== 'error') {
+                    hasUnsavedChanges = false;
+                    localStorage.setItem('hasUnsavedChanges', 'false');
+                    setSyncStatus('saved', 'saved');
+                    resolve(res);
+                } else {
+                    setSyncStatus('error', 'error');
+                    reject(res || new Error('Save returned error status'));
+                }
+            };
+
+            const handleFailure = (err) => {
+                isSavingToServer = false;
+                saveTimeout = null;
+                console.error("Save failed:", err);
                 setSyncStatus('error', 'error');
+                reject(err);
+            };
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler((res) => handleSuccess(res))
+                    .withFailureHandler((err) => handleFailure(err))
+                    .saveToSheetRows(payload);
+            } else if (SCRIPT_URL) {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(res => handleSuccess(res))
+                .catch(err => handleFailure(err));
+            } else {
+                resolve({ status: 'no_script_url' });
             }
         };
 
-        const handleFailure = (err) => {
-            isSavingToServer = false;
-            saveTimeout = null;
-            console.error("Save failed:", err);
-            setSyncStatus('error', 'error');
-        };
-
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-            google.script.run
-                .withSuccessHandler((res) => handleSuccess(res))
-                .withFailureHandler((err) => handleFailure(err))
-                .saveToSheetRows(payload);
-        } else if (SCRIPT_URL) {
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            })
-            .then(r => r.json())
-            .then(res => handleSuccess(res))
-            .catch(err => handleFailure(err));
+        if (immediate) {
+            executeSave();
+        } else {
+            setSyncStatus('syncing', '💾 Changes pending sync...');
+            saveTimeout = setTimeout(executeSave, 2000);
+            resolve({ status: 'scheduled' });
         }
-    };
-
-    if (immediate) {
-        executeSave();
-    } else {
-        setSyncStatus('syncing', '💾 Changes pending sync...');
-        saveTimeout = setTimeout(executeSave, 2000);
-    }
+    });
 }
 
 function renderBalanceInputs() {
