@@ -711,6 +711,22 @@ function renderTable(data) {
         </tr>
     `}).join('');
     
+    const subtotal = data.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+    const tfoot = document.getElementById('expenses-tfoot');
+    if (tfoot) {
+        if (data.length > 0) {
+            tfoot.innerHTML = `
+                <tr style="font-weight: bold; background: var(--bg-secondary);">
+                    <td colspan="4" class="text-right">Subtotal:</td>
+                    <td>रु ${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                    <td colspan="3"></td>
+                </tr>
+            `;
+        } else {
+            tfoot.innerHTML = '';
+        }
+    }
+    
     updateBulkBar();
 }
 
@@ -2228,6 +2244,28 @@ function showToast(msg, type = 'success') {
     setTimeout(() => {
         elements.toast.style.display = 'none';
     }, 3000);
+
+    // Trigger System Notification
+    if ("Notification" in window && Notification.permission === "granted") {
+        try {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(function(registration) {
+                    registration.showNotification("Tiwari House", {
+                        body: msg,
+                        icon: 'icon-192.png',
+                        badge: 'icon-192.png'
+                    });
+                });
+            } else {
+                new Notification("Tiwari House", {
+                    body: msg,
+                    icon: 'icon-192.png'
+                });
+            }
+        } catch (e) {
+            console.log("Error showing system notification", e);
+        }
+    }
 }
 
 function playNotificationSound() {
