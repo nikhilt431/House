@@ -83,7 +83,8 @@ function getAllData() {
     shoppingItems: getRowsData('Shopping', ss),
     budgets: getBalancesData('Budgets', ss),
     templates: getRowsData('Templates', ss),
-    events: getRowsData('Events', ss)
+    events: getRowsData('Events', ss),
+    notifications: getRowsData('Notifications', ss)
   };
 }
 
@@ -135,6 +136,7 @@ function saveToSheetRows(data) {
   if (data.members) updateSheet('Members', ['id', 'name', 'group', 'password', 'uiMode', 'showExpenses', 'showShopping', 'showCalendar', 'showReports', 'showAdmin', 'dashShowFilters', 'dashShowCharts', 'dashShowSettlement'], data.members);
   if (data.templates) updateSheet('Templates', ['id', 'particular', 'amount', 'name', 'group'], data.templates);
   if (data.events) updateSheet('Events', ['id', 'type', 'name', 'date', 'recurring'], data.events);
+  if (data.notifications) updateSheet('Notifications', ['id', 'title', 'msg', 'targetPage', 'time'], data.notifications);
   
   if (data.carriedBalances) {
     var balanceSheet = getSheet('Balances');

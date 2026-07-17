@@ -1,7 +1,7 @@
 // Google Sheets Configuration
 // Instructions: Deploy the Code.gs in your Google Sheet as a Web App, 
 // set "Who has access" to "Anyone", and paste the URL here.
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUwNRRh3OuN1yUtog_jCocKcJapz-G4Lec_xYkYOUE2cwdcQUC9Fs4oNA55-5DK_TnOA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzly8b1PkVU-T2edvu7eeUpyLLW2Zvl6UtsBRQnPmss3nU2DIXaqwNCR8ox8IrWw-ltLw/exec';
 
 const i18n = {
     en: {
@@ -101,7 +101,7 @@ let monthlyChart = null;
 let groupChart = null;
 let dashTrendChart = null;
 let dashGroupChart = null;
-const bsNowInitial = typeof NepaliFunctions !== 'undefined' ? NepaliFunctions.BS.GetCurrentDate() : {year: 2081, month: 1};
+const bsNowInitial = typeof NepaliFunctions !== 'undefined' ? NepaliFunctions.BS.GetCurrentDate() : { year: 2081, month: 1 };
 const currentMonthStr = `${bsNowInitial.year}-${String(bsNowInitial.month).padStart(2, '0')}`;
 const currentYearStr = `${bsNowInitial.year}`;
 let calendarYear = bsNowInitial.year;
@@ -193,7 +193,7 @@ const elements = {
     overlayTitle: document.getElementById('overlay-title'),
     overlayDesc: document.getElementById('overlay-desc'),
     overlayTimer: document.getElementById('overlay-timer'),
-    
+
     // User login elements
     loginOverlay: document.getElementById('login-overlay'),
     loginForm: document.getElementById('login-form'),
@@ -218,7 +218,7 @@ async function init() {
         carriedBalances = {};
         budgets = {};
     }
-    
+
     updateUIWithTranslations();
     updateDynamicUI();
     renderAll();
@@ -226,7 +226,7 @@ async function init() {
     initUserLoginSystem();
     initDatePicker();
     startNepaliClock();
-    
+
     // Request Notification Permission
     if ("Notification" in window) {
         Notification.requestPermission();
@@ -235,7 +235,7 @@ async function init() {
     // Restore last active page
     const lastPage = localStorage.getItem('activePage') || 'dashboard';
     navigateToPage(lastPage);
-    
+
     // Handle URL Parameters (Shortcuts)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('action') === 'add-expense') {
@@ -252,12 +252,12 @@ async function init() {
     // Auto-refresh every 30 seconds for real-time feel, but only if no modal is active and the user is not interacting
     setInterval(() => {
         if (SCRIPT_URL && navigator.onLine) {
-            const isModalOpen = document.querySelector('.modal.active') !== null || 
-                                (elements.eventOverlay && elements.eventOverlay.classList.contains('active'));
-            const isUserInteracting = document.activeElement && 
-                                      (document.activeElement.tagName === 'INPUT' || 
-                                       document.activeElement.tagName === 'TEXTAREA' || 
-                                       document.activeElement.tagName === 'SELECT');
+            const isModalOpen = document.querySelector('.modal.active') !== null ||
+                (elements.eventOverlay && elements.eventOverlay.classList.contains('active'));
+            const isUserInteracting = document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA' ||
+                    document.activeElement.tagName === 'SELECT');
             if (!isModalOpen && !isUserInteracting && !hasUnsavedChanges) {
                 loadFromGoogleSheets();
             }
@@ -459,19 +459,19 @@ function filterExpenses() {
         } else {
             const year = exp.date.substring(0, 4);
             const monthYear = exp.date.substring(0, 7);
-            
+
             const yearMatch = currentFilters.year === 'all' || year === currentFilters.year;
             const monthMatch = currentFilters.month === 'all' || monthYear === currentFilters.month;
-            
+
             if (!yearMatch || !monthMatch) return false;
         }
 
         const groupMatch = currentFilters.group === 'all' || exp.group === currentFilters.group;
-        const searchMatch = !searchTerm || 
-            exp.particular.toLowerCase().includes(searchTerm) || 
+        const searchMatch = !searchTerm ||
+            exp.particular.toLowerCase().includes(searchTerm) ||
             exp.name.toLowerCase().includes(searchTerm) ||
             exp.group.toLowerCase().includes(searchTerm);
-            
+
         return groupMatch && searchMatch;
     });
 }
@@ -515,7 +515,7 @@ function calculateStats(data, calculateDynamicPrev = true) {
             cutoffDate = advancedFilter.start;
         } else if (!advancedFilter.active) {
             if (currentFilters.month !== 'all') {
-                cutoffDate = currentFilters.month + '-00'; 
+                cutoffDate = currentFilters.month + '-00';
             } else if (currentFilters.year !== 'all') {
                 cutoffDate = currentFilters.year + '-00-00';
             }
@@ -525,7 +525,7 @@ function calculateStats(data, calculateDynamicPrev = true) {
             const pastExpenses = expenses.filter(exp => exp.date < cutoffDate);
             const pastTotal = pastExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
             const pastAvg = totalMembers > 0 ? pastTotal / totalMembers : 0;
-            
+
             const pastGroupContribution = {};
             Object.keys(groupMemberMap).forEach(g => pastGroupContribution[g] = 0);
             pastExpenses.forEach(exp => {
@@ -583,19 +583,19 @@ function renderStats(stats, filtered = []) {
         if (currentUser) {
             userGroupCard.style.display = 'block';
             userPersonalCard.style.display = 'block';
-            
+
             const userGroupTotal = filtered.reduce((sum, exp) => {
                 return sum + (exp.group === currentUser.group ? (parseFloat(exp.amount) || 0) : 0);
             }, 0);
             const userPersonalTotal = filtered.reduce((sum, exp) => {
                 return sum + (exp.name === currentUser.name ? (parseFloat(exp.amount) || 0) : 0);
             }, 0);
-            
+
             const userGroupLabel = document.getElementById('dash-user-group-label');
             const userGroupValue = document.getElementById('dash-user-group-value');
             const userPersonalLabel = document.getElementById('dash-user-personal-label');
             const userPersonalValue = document.getElementById('dash-user-personal-value');
-            
+
             if (userGroupLabel) userGroupLabel.textContent = `${currentUser.group} Group Total`;
             if (userGroupValue) userGroupValue.textContent = `रु ${userGroupTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
             if (userPersonalLabel) userPersonalLabel.textContent = `${currentUser.name} Paid`;
@@ -679,7 +679,7 @@ function renderTable(data) {
         const icon = CATEGORY_ICONS[exp.group] || CATEGORY_ICONS["Other"];
         const isSelected = selectedIds.has(exp.id.toString());
         const allowed = canModifyExpense(exp);
-        
+
         return `
         <tr class="${isSelected ? 'row-selected' : ''}" style="${allowed ? '' : 'opacity: 0.85;'}">
             <td>
@@ -689,7 +689,7 @@ function renderTable(data) {
             <td style="font-weight: 500; color: var(--text-muted);">${idx + 1}</td>
             <td>
                 ${formatDate(exp.date)}
-                <span class="audit-info">Created: ${exp.createdAt ? exp.createdAt.substring(0,10) : 'N/A'}</span>
+                <span class="audit-info">Created: ${exp.createdAt ? exp.createdAt.substring(0, 10) : 'N/A'}</span>
             </td>
             <td class="font-medium">
                 <span style="margin-right: 0.5rem;">${icon}</span>
@@ -710,7 +710,7 @@ function renderTable(data) {
             </td>
         </tr>
     `}).join('');
-    
+
     const subtotal = data.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
     const tfoot = document.getElementById('expenses-tfoot');
     if (tfoot) {
@@ -726,7 +726,7 @@ function renderTable(data) {
             tfoot.innerHTML = '';
         }
     }
-    
+
     updateBulkBar();
 }
 
@@ -818,9 +818,9 @@ function renderCharts(data) {
 
     // Group Chart
     const groups = {};
-    data.forEach(exp => { 
+    data.forEach(exp => {
         const amount = parseFloat(exp.amount) || 0;
-        groups[exp.group] = (groups[exp.group] || 0) + amount; 
+        groups[exp.group] = (groups[exp.group] || 0) + amount;
     });
 
     const donutOptions = {
@@ -894,15 +894,15 @@ function startNepaliClock() {
         const now = new Date();
         // Time
         const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
+
         // Nepali Date
         const bsDate = NepaliFunctions.AD2BS({
             year: now.getFullYear(),
             month: now.getMonth() + 1,
             day: now.getDate()
         });
-        
-        const dateStr = currentLang === 'ne' 
+
+        const dateStr = currentLang === 'ne'
             ? NepaliFunctions.BS.GetFullDate(bsDate, true)
             : NepaliFunctions.BS.GetFullDate(bsDate, false);
 
@@ -979,10 +979,10 @@ function setupEventListeners() {
             e.preventDefault();
             const item = document.getElementById('shop-item').value;
             const requestedBy = currentUser ? currentUser.name : (elements.shopName.value || 'Guest');
-            shoppingItems.push({ 
-                id: Date.now(), 
-                item, 
-                requestedBy, 
+            shoppingItems.push({
+                id: Date.now(),
+                item,
+                requestedBy,
                 status: 'to_buy',
                 createdAt: new Date().toISOString(),
                 purchasedBy: null
@@ -1012,7 +1012,7 @@ function setupEventListeners() {
         // Set today's Nepali Date as default
         const bsDate = NepaliFunctions.BS.GetCurrentDate();
         document.getElementById('exp-date').value = NepaliFunctions.ConvertToDateFormat(bsDate, "YYYY-MM-DD");
-        
+
         // Auto-prefill logged in user
         if (currentUser) {
             elements.expName.value = currentUser.name;
@@ -1104,21 +1104,21 @@ function setupEventListeners() {
     document.getElementById('cancel-member-edit').addEventListener('click', resetMemberForm);
 
     // Global Filters
-    elements.yearFilters.forEach(f => f.addEventListener('change', (e) => { 
-        currentFilters.year = e.target.value; 
+    elements.yearFilters.forEach(f => f.addEventListener('change', (e) => {
+        currentFilters.year = e.target.value;
         currentFilters.month = 'all'; // Reset month when year changes
-        updateFiltersUI(); 
-        renderAll(); 
+        updateFiltersUI();
+        renderAll();
     }));
-    elements.monthFilters.forEach(f => f.addEventListener('change', (e) => { 
-        currentFilters.month = e.target.value; 
+    elements.monthFilters.forEach(f => f.addEventListener('change', (e) => {
+        currentFilters.month = e.target.value;
         updateFiltersUI(); // Update other filter views
-        renderAll(); 
+        renderAll();
     }));
-    elements.groupFilters.forEach(f => f.addEventListener('change', (e) => { 
-        currentFilters.group = e.target.value; 
+    elements.groupFilters.forEach(f => f.addEventListener('change', (e) => {
+        currentFilters.group = e.target.value;
         updateFiltersUI(); // Update other filter views
-        renderAll(); 
+        renderAll();
     }));
 
     // Statement Search
@@ -1192,7 +1192,7 @@ function setupEventListeners() {
 
             // Re-render charts for new colors
             renderCharts(filterExpenses());
-            
+
             // Update Date Picker Theme
             initDatePicker();
         });
@@ -1305,7 +1305,7 @@ function setupEventListeners() {
     elements.manageEventsBtn?.addEventListener('click', () => {
         renderEvents();
         elements.eventModal.classList.add('active');
-        
+
         // Init Date Picker for Event Date if not already
         const eventDateInput = document.getElementById('event-date');
         if (eventDateInput && typeof NepaliFunctions !== 'undefined') {
@@ -1466,14 +1466,14 @@ function resetMemberForm() {
 // Helpers
 function formatDate(dateStr) {
     if (!dateStr) return "";
-    
+
     // Handle ISO strings or strings with time (e.g., 2083-01-09T18:15:00.000Z)
     // We only care about the YYYY-MM-DD part
     const cleanDate = dateStr.toString().substring(0, 10);
-    
+
     const dateObj = NepaliFunctions.ConvertToDateObject(cleanDate, "YYYY-MM-DD");
     if (!dateObj) return dateStr;
-    
+
     if (currentLang === 'ne') {
         return NepaliFunctions.BS.GetFullDate(dateObj, true);
     } else {
@@ -1483,7 +1483,7 @@ function formatDate(dateStr) {
 
 function updateFiltersUI() {
     const t = i18n[currentLang];
-    
+
     // Populate Years
     const years = [...new Set(expenses.map(exp => exp.date.substring(0, 4)))]
         .filter(y => y.length === 4)
@@ -1494,12 +1494,12 @@ function updateFiltersUI() {
             const yearStr = currentLang === 'ne' ? NepaliFunctions.ConvertToUnicode(y) : y;
             return `<option value="${y}" ${currentFilters.year === y ? 'selected' : ''}>${yearStr}</option>`;
         }).join('');
-    
+
     elements.yearFilters.forEach(f => f.innerHTML = yearHTML);
 
     // Populate Months
-    const filteredExpensesForMonths = currentFilters.year === 'all' 
-        ? expenses 
+    const filteredExpensesForMonths = currentFilters.year === 'all'
+        ? expenses
         : expenses.filter(exp => exp.date.substring(0, 4) === currentFilters.year);
 
     const mKeys = [...new Set(filteredExpensesForMonths.map(exp => exp.date.substring(0, 7)))]
@@ -1514,13 +1514,13 @@ function updateFiltersUI() {
             const monthName = currentLang === 'ne' ? NepaliFunctions.BS.GetMonthInUnicode(monthIdx) : NepaliFunctions.BS.GetMonth(monthIdx);
             return `<option value="${m}" ${currentFilters.month === m ? 'selected' : ''}>${monthName} ${yearStr}</option>`;
         }).join('');
-    
+
     elements.monthFilters.forEach(f => f.innerHTML = monthHTML);
 
     const gKeys = [...new Set(members.map(m => m.group))].sort();
     const groupHTML = `<option value="all">${t.all_groups || 'All Groups'}</option>` +
         gKeys.map(g => `<option value="${g}" ${currentFilters.group === g ? 'selected' : ''}>${g}</option>`).join('');
-    
+
     elements.groupFilters.forEach(f => {
         f.innerHTML = groupHTML;
         f.value = currentFilters.group;
@@ -1591,7 +1591,7 @@ async function loadFromGoogleSheets() {
     }
     if (!navigator.onLine) {
         setSyncStatus('offline', '☁️ Offline Mode (Using Local Data)');
-        isInitialLoadComplete = true; 
+        isInitialLoadComplete = true;
         return;
     }
 
@@ -1614,8 +1614,9 @@ async function loadFromGoogleSheets() {
         const budChanged = data.budgets && JSON.stringify(budgets) !== JSON.stringify(data.budgets);
         const tempChanged = data.templates && JSON.stringify(templates) !== JSON.stringify(data.templates);
         const evtChanged = data.events && Array.isArray(data.events) && JSON.stringify(events) !== JSON.stringify(data.events);
+        const notifChanged = data.notifications && Array.isArray(data.notifications) && JSON.stringify(notifications) !== JSON.stringify(data.notifications);
 
-        const hasAnyChange = expChanged || memChanged || balChanged || shopChanged || budChanged || tempChanged || evtChanged;
+        const hasAnyChange = expChanged || memChanged || balChanged || shopChanged || budChanged || tempChanged || evtChanged || notifChanged;
 
         if (isInitialLoadComplete && !hasAnyChange) {
             // Nothing changed in Google Sheets! Do not re-render anything to prevent resetting scroll, focus, or cursor!
@@ -1628,16 +1629,16 @@ async function loadFromGoogleSheets() {
         const hasLocalData = !!localStorage.getItem('expenses');
         if (hasLocalData) {
             let newNotificationsAdded = false;
-            
+
             // 1. New Expenses
             if (expChanged) {
                 const newItems = data.expenses.filter(e => !expenses.some(old => old.id === e.id));
                 newItems.forEach(item => {
                     if (currentUser && item.name === currentUser.name) return;
-                    
+
                     const creator = item.createdBy || item.name;
                     const msg = `${creator} added expense: ${item.particular} (Rs. ${item.amount})`;
-                    
+
                     if (isInitialLoadComplete) {
                         sendNotification("New Expense", msg, 'expenses');
                     } else {
@@ -1646,15 +1647,15 @@ async function loadFromGoogleSheets() {
                     }
                 });
             }
-            
+
             // 2. Shopping List Updates
             if (shopChanged) {
                 const newItems = data.shoppingItems.filter(i => !shoppingItems.some(old => old.id === i.id));
                 newItems.forEach(item => {
                     if (currentUser && item.requestedBy === currentUser.name) return;
-                    
+
                     const msg = `${item.requestedBy} requested: ${item.item}`;
-                    
+
                     if (isInitialLoadComplete) {
                         sendNotification("New Shopping Item", msg, 'shopping');
                     } else {
@@ -1662,13 +1663,13 @@ async function loadFromGoogleSheets() {
                         newNotificationsAdded = true;
                     }
                 });
-                
+
                 const purchasedItems = data.shoppingItems.filter(i => i.status === 'purchased' && shoppingItems.some(old => old.id === i.id && old.status === 'to_buy'));
                 purchasedItems.forEach(item => {
                     if (currentUser && item.purchasedBy === currentUser.name) return;
-                    
+
                     const msg = `${item.purchasedBy || 'Someone'} purchased: ${item.item}`;
-                    
+
                     if (isInitialLoadComplete) {
                         sendNotification("Shopping Item Bought", msg, 'shopping');
                     } else {
@@ -1677,7 +1678,7 @@ async function loadFromGoogleSheets() {
                     }
                 });
             }
-            
+
             if (newNotificationsAdded && !isInitialLoadComplete) {
                 showToast("New updates in notification center!", "info");
             }
@@ -1690,7 +1691,7 @@ async function loadFromGoogleSheets() {
                 const existingMem = members.find(m => m.id == incomingMem.id);
                 const passwordVal = incomingMem.password || (existingMem ? existingMem.password : '') || '1234';
                 const uiModeVal = incomingMem.uiMode || (existingMem ? existingMem.uiMode : '') || 'professional';
-                
+
                 // Helper to parse true/false strings from Google Sheets
                 const getBool = (incomingKey, fallbackKey, defaultVal = true) => {
                     const val = incomingMem[incomingKey];
@@ -1722,7 +1723,7 @@ async function loadFromGoogleSheets() {
                     }
                 };
             });
-            
+
             // Also keep currentUser object updated if it is in the list
             if (currentUser) {
                 const updatedMe = members.find(m => m.id == currentUser.id);
@@ -1738,6 +1739,10 @@ async function loadFromGoogleSheets() {
         if (data.budgets) budgets = data.budgets;
         if (data.templates) templates = data.templates;
         if (data.events && Array.isArray(data.events)) events = data.events;
+        if (data.notifications && Array.isArray(data.notifications)) {
+            notifications = data.notifications;
+            localStorage.setItem('notifications', JSON.stringify(notifications));
+        }
 
         if (data.userEmail) {
             elements.userProfile.style.display = 'block';
@@ -1765,7 +1770,7 @@ async function loadFromGoogleSheets() {
             renderMonthlyReport();
             updateStatementDropdown();
         }
-        
+
         if (memChanged || !isInitialLoadComplete) {
             renderMembers();
             updateDynamicUI();
@@ -1774,15 +1779,15 @@ async function loadFromGoogleSheets() {
                 updateUserProfileUI();
             }
         }
-        
+
         if (shopChanged || !isInitialLoadComplete) {
             renderShoppingList();
         }
-        
+
         if (tempChanged || !isInitialLoadComplete) {
             renderTemplates();
         }
-        
+
         if (evtChanged || !isInitialLoadComplete) {
             renderEvents();
         }
@@ -1809,7 +1814,7 @@ async function loadFromGoogleSheets() {
             isSyncing = false;
             console.error('Fetch error:', err);
             setSyncStatus('offline', '☁️ Offline Mode (Sync Failed)');
-            isInitialLoadComplete = true; 
+            isInitialLoadComplete = true;
         }
     }
 }
@@ -1861,7 +1866,8 @@ function saveToGoogleSheets(immediate = false) {
                 shoppingItems: shoppingItems,
                 budgets: budgets,
                 templates: templates,
-                events: events
+                events: events,
+                notifications: notifications
             };
 
             const handleSuccess = (res) => {
@@ -1896,9 +1902,9 @@ function saveToGoogleSheets(immediate = false) {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 })
-                .then(r => r.json())
-                .then(res => handleSuccess(res))
-                .catch(err => handleFailure(err));
+                    .then(r => r.json())
+                    .then(res => handleSuccess(res))
+                    .catch(err => handleFailure(err));
             } else {
                 resolve({ status: 'no_script_url' });
             }
@@ -1936,14 +1942,14 @@ function canModifyExpense(exp) {
 function editExpense(id) {
     const exp = expenses.find(e => e.id == id);
     if (!exp) return;
-    
+
     if (!canModifyExpense(exp)) {
         showToast("Access Denied: Only the creator or Admin Nikhil can edit this.", "error");
         return;
     }
-    
+
     document.getElementById('edit-expense-id').value = exp.id;
-    
+
     // Ensure date is in BS format for the picker
     let dateVal = exp.date;
     // If it looks like an AD date (pre-migration), convert it
@@ -1952,7 +1958,7 @@ function editExpense(id) {
         const bsDate = NepaliFunctions.AD2BS(adDate);
         dateVal = NepaliFunctions.ConvertToDateFormat(bsDate, "YYYY-MM-DD");
     }
-    
+
     document.getElementById('exp-date').value = dateVal;
     document.getElementById('exp-particular').value = exp.particular;
     document.getElementById('exp-amount').value = exp.amount;
@@ -1984,7 +1990,7 @@ function renderShoppingList() {
     elements.shoppingTable.innerHTML = shoppingItems.map(item => {
         const age = timeAgo(item.createdAt);
         const purchaserInfo = item.purchasedBy ? `<div class="purchaser-info" style="font-size: 0.72rem; color: var(--success); margin-top: 0.2rem; display: flex; align-items: center; gap: 0.25rem;"><span>✅</span> <span>Bought by: <strong>${item.purchasedBy}</strong></span></div>` : '';
-        
+
         return `
         <tr class="${item.status === 'purchased' ? 'row-dimmed' : ''}">
             <td>
@@ -2011,7 +2017,7 @@ function renderShoppingList() {
 function timeAgo(date) {
     if (!date) return '';
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    
+
     let interval = Math.floor(seconds / 31536000);
     if (interval >= 1) return interval + "y ago";
     interval = Math.floor(seconds / 2592000);
@@ -2033,7 +2039,7 @@ function toggleShopStatus(id) {
             item.purchasedBy = null;
         } else {
             item.status = 'purchased';
-            
+
             // Use active user session if available, with fallbacks
             let purchaser = '';
             if (typeof currentUser !== 'undefined' && currentUser) {
@@ -2072,7 +2078,7 @@ function initDatePicker() {
     if (!dateInput) return;
 
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    
+
     // Initialize or Update Nepali Date Picker
     // Note: The library usually handles re-initialization well
     $(dateInput).nepaliDatePicker({
@@ -2081,7 +2087,7 @@ function initDatePicker() {
         language: currentLang === 'ne' ? "nepali" : "english",
         mode: isDark ? "dark" : "light",
         miniEnglishDates: true, // Shows Gregorian dates alongside Nepali dates
-        onSelect: function(data) {
+        onSelect: function (data) {
             // data is the selected date object
         }
     });
@@ -2116,8 +2122,8 @@ function renderBudgetInputs() {
 function exportToCSV() {
     const headers = ['Date', 'Particular', 'Amount', 'Name', 'Group'];
     const rows = expenses.map(e => [e.date, e.particular, e.amount, e.name, e.group]);
-    
-    let csvContent = "data:text/csv;charset=utf-8," 
+
+    let csvContent = "data:text/csv;charset=utf-8,"
         + headers.join(",") + "\n"
         + rows.map(r => r.join(",")).join("\n");
 
@@ -2169,25 +2175,25 @@ function updateTemplatePayerOptions() {
 function useTemplate(id) {
     const t = templates.find(temp => temp.id == id);
     if (!t) return;
-    
+
     // Autofill main expense form
     resetExpenseForm();
-    
+
     const nameInput = document.getElementById('exp-name');
     const groupInput = document.getElementById('exp-group');
-    
+
     document.getElementById('exp-particular').value = t.particular;
     document.getElementById('exp-amount').value = t.amount || '';
     nameInput.value = t.name;
-    
+
     // Dynamically find the group based on the name to ensure it's always current
     const member = members.find(m => m.name === t.name);
     groupInput.value = member ? member.group : (t.group || '');
-    
+
     // Set today's Nepali Date as default
     const bsDate = NepaliFunctions.BS.GetCurrentDate();
     document.getElementById('exp-date').value = NepaliFunctions.ConvertToDateFormat(bsDate, "YYYY-MM-DD");
-    
+
     elements.expenseModal.classList.add('active');
     showToast('Template Applied', 'success');
 }
@@ -2240,16 +2246,18 @@ function showToast(msg, type = 'success') {
     document.getElementById('toast-message').textContent = msg;
     elements.toast.className = `toast ${type}`;
     elements.toast.style.display = 'flex';
-    
+
     setTimeout(() => {
         elements.toast.style.display = 'none';
     }, 3000);
 
     // Trigger System Notification
-    if ("Notification" in window && Notification.permission === "granted") {
+    if (window.AndroidBridge && window.AndroidBridge.showNotification) {
+        window.AndroidBridge.showNotification("Tiwari House", msg);
+    } else if ("Notification" in window && Notification.permission === "granted") {
         try {
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.ready.then(function(registration) {
+                navigator.serviceWorker.ready.then(function (registration) {
                     registration.showNotification("Tiwari House", {
                         body: msg,
                         icon: 'icon-192.png',
@@ -2294,7 +2302,7 @@ function playNotificationSound() {
 function sendNotification(title, msg, targetPage = null) {
     showToast(msg, 'success');
     playNotificationSound();
-    
+
     // Add to notification list
     const newNotif = {
         id: Date.now(),
@@ -2312,11 +2320,11 @@ function sendNotification(title, msg, targetPage = null) {
     if (elements.notifBadge) {
         elements.notifBadge.style.display = 'block';
     }
-    
+
     if (document.visibilityState === 'hidden' && "Notification" in window && Notification.permission === "granted") {
         try {
-            new Notification(title, { 
-                body: msg, 
+            new Notification(title, {
+                body: msg,
                 icon: 'icon-192.png',
                 badge: 'icon-192.png'
             });
@@ -2383,7 +2391,7 @@ function deleteEvent(id) {
 
 function checkTodayEvents() {
     if (!elements.eventOverlay) return;
-    
+
     const bsDate = NepaliFunctions.BS.GetCurrentDate();
     const todayStrFull = NepaliFunctions.ConvertToDateFormat(bsDate, "YYYY-MM-DD");
     const todayMonthDay = todayStrFull.substring(5); // MM-DD
@@ -2410,12 +2418,12 @@ function checkTodayEvents() {
         elements.overlayTitle.textContent = ev.type === 'birthday' ? 'Happy Birthday!' : 'Event Today!';
         elements.overlayDesc.textContent = ev.name;
         elements.overlayIcon.textContent = ev.type === 'birthday' ? '🎂' : (ev.type === 'function' ? '🎊' : '📅');
-        
+
         elements.eventOverlay.classList.add('active');
-        
+
         let secondsLeft = 10;
         elements.overlayTimer.textContent = `Closing in ${secondsLeft}s...`;
-        
+
         timerInterval = setInterval(() => {
             secondsLeft--;
             elements.overlayTimer.textContent = `Closing in ${secondsLeft}s...`;
@@ -2425,7 +2433,7 @@ function checkTodayEvents() {
                 nextEvent();
             }
         }, 1000);
-        
+
         elements.eventOverlay.dataset.timerId = timerInterval;
     };
 
@@ -2442,7 +2450,7 @@ function checkTodayEvents() {
         }
     };
 
-    window.closeEventOverlay = function() {
+    window.closeEventOverlay = function () {
         nextEvent();
     };
 
@@ -2451,7 +2459,7 @@ function checkTodayEvents() {
 
 function renderNotifications() {
     if (!elements.notifList) return;
-    
+
     if (notifications.length === 0) {
         elements.notifList.innerHTML = '<p class="empty-notif">No new updates</p>';
         return;
@@ -2464,7 +2472,7 @@ function renderNotifications() {
             <span class="notif-item-time">${n.time}</span>
         </div>
     `).join('');
-    
+
     // Add click listeners
     const items = elements.notifList.querySelectorAll('.notif-item');
     items.forEach(item => {
@@ -2476,7 +2484,7 @@ function renderNotifications() {
             }
         });
     });
-    
+
     // Mark all as read after opening
     notifications = notifications.map(n => ({ ...n, read: true }));
     localStorage.setItem('notifications', JSON.stringify(notifications));
@@ -2498,15 +2506,15 @@ function updateLoginUserDropdown() {
 
 function updateUserProfileUI() {
     if (!elements.userProfile) return;
-    
+
     if (currentUser) {
         elements.userProfile.style.display = 'flex';
         elements.userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
         elements.userDropdownName.textContent = currentUser.name;
         elements.userDropdownGroup.textContent = currentUser.group;
-        
+
         applyUserUiMode(currentUser);
-        
+
         // Auto-select in Payer select inputs if adding
         if (elements.expName) {
             elements.expName.value = currentUser.name;
@@ -2537,22 +2545,22 @@ function initUserLoginSystem() {
         elements.loginOverlay.classList.remove('active');
         updateUserProfileUI();
     }
-    
+
     updateLoginUserDropdown();
-    
+
     // Login form submission
     if (elements.loginForm) {
         elements.loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = elements.loginUserSelect.value;
             const passwordVal = elements.loginPassword.value;
-            
+
             const member = members.find(m => m.name === name);
             if (!member) {
                 showLoginError("Member not found!");
                 return;
             }
-            
+
             const correctPassword = member.password || '1234';
             if (passwordVal === correctPassword) {
                 currentUser = member;
@@ -2567,7 +2575,7 @@ function initUserLoginSystem() {
             }
         });
     }
-    
+
     // Guest button click
     if (elements.loginGuestBtn) {
         elements.loginGuestBtn.addEventListener('click', () => {
@@ -2578,7 +2586,7 @@ function initUserLoginSystem() {
             showToast("Browsing as Guest", 'info');
         });
     }
-    
+
     // Toggle User Profile Dropdown
     if (elements.userProfile) {
         elements.userProfile.addEventListener('click', (e) => {
@@ -2589,14 +2597,14 @@ function initUserLoginSystem() {
             }
         });
     }
-    
+
     // Click outside user profile closes dropdown
     document.addEventListener('click', (e) => {
         if (elements.userDropdown && !elements.userDropdown.contains(e.target) && e.target !== elements.userProfile) {
             elements.userDropdown.style.display = 'none';
         }
     });
-    
+
     // Logout button click
     if (elements.logoutBtn) {
         elements.logoutBtn.addEventListener('click', () => {
@@ -2632,11 +2640,11 @@ function renderCalendarView() {
     if (!titleEl || !gridEl || !weekdaysEl) return;
 
     // Header Display (Nepali BS Month Name & Year)
-    const nepMonthName = currentLang === 'ne' 
+    const nepMonthName = currentLang === 'ne'
         ? NepaliFunctions.BS.GetMonthInUnicode(calendarMonth - 1)
         : NepaliFunctions.BS.GetMonth(calendarMonth - 1);
-    const nepYearStr = currentLang === 'ne' 
-        ? NepaliFunctions.ConvertToUnicode(calendarYear) 
+    const nepYearStr = currentLang === 'ne'
+        ? NepaliFunctions.ConvertToUnicode(calendarYear)
         : calendarYear.toString();
     titleEl.textContent = `${nepMonthName} ${nepYearStr}`;
 
@@ -2648,7 +2656,7 @@ function renderCalendarView() {
 
     // Grid Calculations
     const daysInMonth = NepaliFunctions.BS.GetDaysInMonth(calendarYear, calendarMonth);
-    const firstDayStr = NepaliFunctions.BS.GetFullDay({year: calendarYear, month: calendarMonth, day: 1});
+    const firstDayStr = NepaliFunctions.BS.GetFullDay({ year: calendarYear, month: calendarMonth, day: 1 });
     const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const startingDayIndex = weekdayNames.indexOf(firstDayStr);
 
@@ -2663,7 +2671,7 @@ function renderCalendarView() {
     const todayBS = NepaliFunctions.BS.GetCurrentDate();
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${calendarYear}-${String(calendarMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        
+
         // Find events on this day
         const dayMonthStr = dateStr.substring(5); // MM-DD
         const dayEvents = events.filter(ev => {
@@ -2679,18 +2687,18 @@ function renderCalendarView() {
 
         // Styling for special days
         const isToday = todayBS.year === calendarYear && todayBS.month === calendarMonth && todayBS.day === d;
-        const dayStyle = isToday 
-            ? `border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);` 
+        const dayStyle = isToday
+            ? `border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);`
             : `border: 1px solid var(--border);`;
-        
+
         // Nepali unicode day number
-        const displayDay = currentLang === 'ne' 
-            ? NepaliFunctions.ConvertToUnicode(d) 
+        const displayDay = currentLang === 'ne'
+            ? NepaliFunctions.ConvertToUnicode(d)
             : d.toString();
 
         // Construct HTML for badges inside the grid day
         let badgesHTML = '';
-        
+
         // Birthdays
         dayEvents.filter(ev => ev.type === 'birthday').forEach(ev => {
             badgesHTML += `
@@ -2736,7 +2744,7 @@ function renderCalendarView() {
 }
 
 // Global functions for events
-window.openDayDetails = function(day) {
+window.openDayDetails = function (day) {
     const drawer = document.getElementById('day-details-drawer');
     const drawerTitle = document.getElementById('drawer-date-title');
     const drawerBody = document.getElementById('drawer-details-body');
@@ -2802,9 +2810,9 @@ window.openDayDetails = function(day) {
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     ${dayExpenses.map(exp => {
-                        const icon = CATEGORY_ICONS[exp.group] || CATEGORY_ICONS["Other"];
-                        const allowed = canModifyExpense(exp);
-                        return `
+            const icon = CATEGORY_ICONS[exp.group] || CATEGORY_ICONS["Other"];
+            const allowed = canModifyExpense(exp);
+            return `
                             <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border);">
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <div class="category-icon" style="width: 32px; height: 32px; font-size: 1.1rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--border);">${icon}</div>
@@ -2822,7 +2830,7 @@ window.openDayDetails = function(day) {
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+        }).join('')}
                 </div>
             </div>
         `;
@@ -2842,23 +2850,23 @@ window.openDayDetails = function(day) {
 };
 
 // Add / Edit callbacks
-window.editExpenseFromCal = function(id) {
+window.editExpenseFromCal = function (id) {
     document.getElementById('day-details-drawer').style.display = 'none';
     editExpense(id);
 };
 
-window.deleteExpenseFromCal = function(id) {
+window.deleteExpenseFromCal = function (id) {
     if (confirm("Delete this expense?")) {
         document.getElementById('day-details-drawer').style.display = 'none';
         deleteExpense(id);
     }
 };
 
-window.editEventFromCal = function(id) {
+window.editEventFromCal = function (id) {
     document.getElementById('day-details-drawer').style.display = 'none';
     const ev = events.find(e => e.id == id);
     if (!ev) return;
-    
+
     // Open Event Modal
     elements.eventModal.classList.add('active');
     document.getElementById('edit-event-id').value = ev.id;
@@ -2868,7 +2876,7 @@ window.editEventFromCal = function(id) {
     document.getElementById('event-recurring').value = ev.recurring;
 };
 
-window.deleteEventFromCal = function(id) {
+window.deleteEventFromCal = function (id) {
     if (confirm("Delete this event?")) {
         document.getElementById('day-details-drawer').style.display = 'none';
         deleteEvent(id);
@@ -2919,7 +2927,7 @@ function setupCalendarNavigation() {
         addExpenseBtn.addEventListener('click', () => {
             const selectedDate = drawer.dataset.selectedDate;
             drawer.style.display = 'none';
-            
+
             // Open Add Expense modal
             resetExpenseForm();
             elements.expenseModal.classList.add('active');
@@ -2935,7 +2943,7 @@ function setupCalendarNavigation() {
         addEventBtn.addEventListener('click', () => {
             const selectedDate = drawer.dataset.selectedDate;
             drawer.style.display = 'none';
-            
+
             // Open Add Event modal/panel
             elements.eventModal.classList.add('active');
             document.getElementById('edit-event-id').value = '';
@@ -2956,7 +2964,7 @@ window.setupCalendarNavigation = setupCalendarNavigation;
 
 function applyUserUiMode(user) {
     const mode = user ? (user.uiMode || 'professional') : 'professional';
-    
+
     const customFeatures = (user && user.customFeatures) ? user.customFeatures : {
         expenses: true,
         shopping: true,
@@ -3038,7 +3046,7 @@ function applyUserUiMode(user) {
     if (dashSettlement) dashSettlement.style.display = showSettlement ? '' : 'none';
     if (dashIndividual) dashIndividual.style.display = showSettlement ? '' : 'none';
     if (dashBalanceList) dashBalanceList.style.display = showSettlement ? '' : 'none';
-    
+
     const activePage = localStorage.getItem('activePage') || 'dashboard';
     if (activePage !== 'dashboard' && !visibleTabs[activePage]) {
         navigateToPage('dashboard');
@@ -3080,7 +3088,7 @@ function setupAccountSettings() {
 
             modal.classList.add('active');
             document.getElementById('settings-password').value = '';
-            
+
             const userMode = currentUser.uiMode || 'professional';
             modeRadios.forEach(r => {
                 r.checked = (r.value === userMode);
@@ -3158,7 +3166,7 @@ function setupAccountSettings() {
 
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             saveData(true);
-            
+
             applyUserUiMode(currentUser);
             updateUserProfileUI();
             closeModal();
