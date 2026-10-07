@@ -492,7 +492,7 @@ function calculateStats(data, calculateDynamicPrev = true) {
         if (individual.hasOwnProperty(exp.name)) individual[exp.name] += amount;
     });
 
-    // Group Distribution for active filtered month
+    // Group Distribution for current active view
     const groupContribution = {};
     Object.keys(groupMemberMap).forEach(g => groupContribution[g] = 0);
     data.forEach(exp => {
@@ -513,7 +513,8 @@ function calculateStats(data, calculateDynamicPrev = true) {
             : 0;
     });
 
-    // Only run automatic dynamic past calculation if no manual opening balance is set
+    // Disable auto-recalculation across past months when member counts or groups change
+    // This stops past deleted groups from dumping historical bills onto remaining members
     const hasManualBalances = carriedBalances && Object.keys(carriedBalances).length > 0;
     if (calculateDynamicPrev && !hasManualBalances) {
         let cutoffDate = null;
@@ -530,10 +531,8 @@ function calculateStats(data, calculateDynamicPrev = true) {
         if (cutoffDate) {
             const pastExpenses = expenses.filter(exp => exp.date < cutoffDate);
             const activePastGroups = [...new Set(pastExpenses.map(e => e.group))];
-            
-            // Only auto-calculate past balances if past groups match current groups
-            // (Prevents deleted groups from dumping their historical shares on remaining members)
             const allPastGroupsInCurrent = activePastGroups.every(g => groupMemberMap.hasOwnProperty(g));
+
             if (allPastGroupsInCurrent && totalMembers > 0) {
                 const pastTotal = pastExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
                 const pastAvg = pastTotal / totalMembers;
@@ -556,6 +555,25 @@ function calculateStats(data, calculateDynamicPrev = true) {
         }
     }
 
+    // Group Settlement
+    const groupSettlements = Object.keys(groupMemberMap).map(group => {
+        const count = groupMemberMap[group];
+        const required = avgIndividualShare * count;
+        const actual = parseFloat(groupContribution[group]) || 0;
+        const prev = prevBalances[group] || 0;
+        return {
+            group,
+            count,
+            required,
+            actual,
+            prev,
+            currentBalance: actual - required,
+            totalDue: (actual - required) + prev
+        };
+    });
+
+    return { total, individual, groupSettlements };
+}
     // Group Settlement
     const groupSettlements = Object.keys(groupMemberMap).map(group => {
         const count = groupMemberMap[group];
