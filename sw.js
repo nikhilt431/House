@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiwari-tracker-v3';
+const CACHE_NAME = 'tiwari-tracker-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
 
 // Install Service Worker
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('Caching assets');
@@ -27,7 +28,7 @@ self.addEventListener('activate', event => {
         .filter(key => key !== CACHE_NAME)
         .map(key => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
