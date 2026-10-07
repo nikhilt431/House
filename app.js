@@ -492,7 +492,7 @@ function calculateStats(data, calculateDynamicPrev = true) {
         if (individual.hasOwnProperty(exp.name)) individual[exp.name] += amount;
     });
 
-    // Group Distribution
+    // Group Distribution for active filtered month
     const groupContribution = {};
     Object.keys(groupMemberMap).forEach(g => groupContribution[g] = 0);
     data.forEach(exp => {
@@ -505,17 +505,23 @@ function calculateStats(data, calculateDynamicPrev = true) {
     const totalMembers = members.length;
     const avgIndividualShare = totalMembers > 0 ? total / totalMembers : 0;
 
-    // Dynamic Previous Balances
+    // Previous Balances (Brought Forward)
     let prevBalances = {};
-    Object.keys(groupMemberMap).forEach(g => prevBalances[g] = parseFloat(carriedBalances[g]) || 0);
+    Object.keys(groupMemberMap).forEach(g => {
+        prevBalances[g] = (carriedBalances && carriedBalances[g] !== undefined) 
+            ? (parseFloat(carriedBalances[g]) || 0) 
+            : 0;
+    });
 
-    if (calculateDynamicPrev) {
+    // Only run automatic dynamic past calculation if no manual opening balance is set
+    const hasManualBalances = carriedBalances && Object.keys(carriedBalances).length > 0;
+    if (calculateDynamicPrev && !hasManualBalances) {
         let cutoffDate = null;
         if (advancedFilter.active && advancedFilter.start) {
             cutoffDate = advancedFilter.start;
         } else if (!advancedFilter.active) {
             if (currentFilters.month !== 'all') {
-                cutoffDate = currentFilters.month + '-00';
+                cutoffDate = currentFilters.month + '-00'; 
             } else if (currentFilters.year !== 'all') {
                 cutoffDate = currentFilters.year + '-00-00';
             }
@@ -523,27 +529,52 @@ function calculateStats(data, calculateDynamicPrev = true) {
 
         if (cutoffDate) {
             const pastExpenses = expenses.filter(exp => exp.date < cutoffDate);
-            const pastTotal = pastExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-            const pastAvg = totalMembers > 0 ? pastTotal / totalMembers : 0;
+            const activePastGroups = [...new Set(pastExpenses.map(e => e.group))];
+            
+            // Only auto-calculate past balances if past groups match current groups
+            // (Prevents deleted groups from dumping their historical shares on remaining members)
+            const allPastGroupsInCurrent = activePastGroups.every(g => groupMemberMap.hasOwnProperty(g));
+            if (allPastGroupsInCurrent && totalMembers > 0) {
+                const pastTotal = pastExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+                const pastAvg = pastTotal / totalMembers;
+                
+                const pastGroupContribution = {};
+                Object.keys(groupMemberMap).forEach(g => pastGroupContribution[g] = 0);
+                pastExpenses.forEach(exp => {
+                    if (pastGroupContribution.hasOwnProperty(exp.group)) {
+                        pastGroupContribution[exp.group] += (parseFloat(exp.amount) || 0);
+                    }
+                });
 
-            const pastGroupContribution = {};
-            Object.keys(groupMemberMap).forEach(g => pastGroupContribution[g] = 0);
-            pastExpenses.forEach(exp => {
-                if (pastGroupContribution.hasOwnProperty(exp.group)) {
-                    pastGroupContribution[exp.group] += (parseFloat(exp.amount) || 0);
-                }
-            });
-
-            Object.keys(groupMemberMap).forEach(group => {
-                const count = groupMemberMap[group];
-                const required = pastAvg * count;
-                const actual = pastGroupContribution[group];
-                prevBalances[group] += (actual - required);
-            });
+                Object.keys(groupMemberMap).forEach(group => {
+                    const count = groupMemberMap[group];
+                    const required = pastAvg * count;
+                    const actual = pastGroupContribution[group];
+                    prevBalances[group] += (actual - required);
+                });
+            }
         }
     }
 
     // Group Settlement
+    const groupSettlements = Object.keys(groupMemberMap).map(group => {
+        const count = groupMemberMap[group];
+        const required = avgIndividualShare * count;
+        const actual = parseFloat(groupContribution[group]) || 0;
+        const prev = prevBalances[group] || 0;
+        return {
+            group,
+            count,
+            required,
+            actual,
+            prev,
+            currentBalance: actual - required,
+            totalDue: (actual - required) + prev
+        };
+    });
+
+    return { total, individual, groupSettlements };
+}    // Group Settlement
     const groupSettlements = Object.keys(groupMemberMap).map(group => {
         const count = groupMemberMap[group];
         const required = avgIndividualShare * count;
